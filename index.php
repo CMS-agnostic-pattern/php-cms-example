@@ -1,11 +1,22 @@
 <?php
-ini_set('memory_limit', '2048M');
 
 use Dotenv\Dotenv;
 
 require_once __DIR__ . '/vendor/autoload.php';
 
-$model = load_model();
+// Load environment variables from .env file.
+$dotenv = Dotenv::createImmutable(__DIR__);
+$dotenv->safeLoad();
+
+// Check if model exists in session
+session_start();
+if (isset($_SESSION['model'])) {
+    $model = $_SESSION['model'];
+} else {
+    $model = load_model();
+    $_SESSION['model'] = $model;
+}
+
 $action = isset($_GET['action']) ? $_GET['action'] : 'list';
 switch ($action) {
     case 'add':
@@ -14,6 +25,7 @@ switch ($action) {
         if (isset($_GET['type'])) {
             $type = $model['types'][$_GET['type']];
             $fields = $model['fields'];
+            echo '<h2>Add new ' . $type['name'] . '</h2>';
             echo '<form method="post" action="index.php?action=save">';
             echo '<input type="hidden" name="type" value="' . $type['id'] . '">';
             foreach ($type['fields'] as $field) {
@@ -38,7 +50,34 @@ switch ($action) {
             echo '<div><input type="submit" value="Save"></div>';
             echo '</form>';
         }
+        break;
+    case 'save':
+        // Save the object to the model.
+        if (isset($_POST['type'])) {
+            $type = $model['types'][$_POST['type']];
+            $data = [];
+            foreach ($type['fields'] as $field) {
+                if (isset($_POST[$field['id']])) {
+                    $data[$field['id']] = $_POST[$field['id']];
+                }
+            }
+            $contentFolder = $_ENV['CONTENT_FOLDER'] . $_POST['type'] . '/';
+            if (!is_dir($contentFolder)) {
+                mkdir($contentFolder, 0777, true);
+            }
+            $contentFile = $contentFolder . $_POST['id'] . '.' . $_ENV['CONTENT_FORMAT'];
+            switch ($_ENV['CONTENT_FORMAT']) {
+                // TBD: add more formats.
+                case 'json':
+                default:
+                    file_put_contents($contentFile, json_encode($data));
+            }
 
+            echo '<div><em>Object saved successfully!</em></div>';
+            echo '<div><a href="index.php">Back to the Dashboard</a></div>';
+        } else {
+            echo 'Error: Invalid object type!';
+        }
         break;
     case 'edit':
         echo json_encode($model['types']);
@@ -47,23 +86,48 @@ switch ($action) {
         echo "TBD: delete object.";
         break;
     default:
+        echo '<h2>Add new object</h2>';
         echo '<ul>';
         foreach ($model['types'] as $type) {
-            echo '<li><a href="index.php?action=add&type=' . $type['id'] . '">' . $type['name'] . '</a></li>';
+            if (isset($type['status']) && $type['status'] === 'active') {
+                echo '<li><a href="index.php?action=add&type=' . $type['id'] . '">' . $type['name'] . '</a></li>';
+            }
         }
         echo '</ul>';
-        echo "TBD: list of all objects.";
-        echo '<pre>';
-        print_r($model);
-        echo '</pre>';
+        // Output list of available objects by types.
+        echo '<h2>List of Available Objects</h2>';
+        foreach ($model['types'] as $type) {
+            if (isset($type['status']) && $type['status'] === 'active') {
+                echo '<h3>' . $type['name'] . '</h3>';
+                $contentFolder = $_ENV['CONTENT_FOLDER'] . $type['id'] . '/';
+                if (is_dir($contentFolder)) {
+                    $files = scandir($contentFolder);
+                    foreach ($files as $file) {
+                        if ($file !== '.' && $file !== '..') {
+                            $contentFile = $contentFolder . $file;
+                            $data = json_decode(file_get_contents($contentFile), true);
+                            echo '<div>';
+                            echo '<span><a href="index.php?action=edit&id=' . $data['id'] . '">Edit</a> | <a href="index.php?action=delete&id=' . $data['id'] . '">Delete</a></span>';
+                            foreach ($type['fields'] as $field) {
+                                if (in_array($field['id'], ['id', 'title', 'slug', 'published'])) {
+                                    echo '&nbsp;&nbsp;<span><strong>' . $field['name'] . ':</strong> ' . $data[$field['id']] . '</span>';
+                                }
+                            }
+                            echo '</div>';
+                        }
+                    }
+                }
+            }
+        }
+        // echo '<pre>';
+        // print_r($model);
+        // echo '</pre>';
 }
 
 exit;
 
 // Load model function.
 function load_model() {
-    $dotenv = Dotenv::createImmutable(__DIR__);
-    $dotenv->safeLoad();
     if (isset($_ENV['MODEL_ROOT_FOLDER']) &&
         isset($_ENV['MODEL_ROOT_FILE'])) {
         $root_path = $_ENV['MODEL_ROOT_FOLDER'];

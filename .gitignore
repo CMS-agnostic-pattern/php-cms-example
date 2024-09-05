@@ -6,3 +6,6 @@ vendor/.git
 .DS_Store
 .AppleDouble
 .LSOverride
+
+#content folder
+content/
