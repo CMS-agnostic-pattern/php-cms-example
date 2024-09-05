@@ -6,10 +6,57 @@ use Dotenv\Dotenv;
 require_once __DIR__ . '/vendor/autoload.php';
 
 $model = load_model();
+$action = isset($_GET['action']) ? $_GET['action'] : 'list';
+switch ($action) {
+    case 'add':
+        // Output the form for adding a new object.
+        // there should be type of the object in $_GET['action'].
+        if (isset($_GET['type'])) {
+            $type = $model['types'][$_GET['type']];
+            $fields = $model['fields'];
+            echo '<form method="post" action="index.php?action=save">';
+            echo '<input type="hidden" name="type" value="' . $type['id'] . '">';
+            foreach ($type['fields'] as $field) {
+                echo '<div><label for="' . $field['id'] . '"><strong>' . $field['name'] . ':</strong></label><br />';
+                switch($fields[$field['type']]['element']) {
+                    case 'select':
+                        echo 'TBD: select';
+                        break;
+                    case 'radio':
+                        echo 'TBD: radio';
+                        break;
+                    case 'checkbox':
+                        echo '<input type="checkbox" name="' . $field['id'] . '" id="' . $field['id'] . '"></div>';
+                        break;
+                    case 'textarea':
+                        echo '<textarea name="' . $field['id'] . '" id="' . $field['id'] . '"></textarea></div>';
+                        break;
+                    default:
+                        echo '<input type="text" name="' . $field['id'] . '" id="' . $field['id'] . '"></div>';
+                }
+            }
+            echo '<div><input type="submit" value="Save"></div>';
+            echo '</form>';
+        }
 
-echo '<pre>';
-print_r($model);
-echo '</pre>';
+        break;
+    case 'edit':
+        echo json_encode($model['types']);
+        break;
+    case 'delete':
+        echo "TBD: delete object.";
+        break;
+    default:
+        echo '<ul>';
+        foreach ($model['types'] as $type) {
+            echo '<li><a href="index.php?action=add&type=' . $type['id'] . '">' . $type['name'] . '</a></li>';
+        }
+        echo '</ul>';
+        echo "TBD: list of all objects.";
+        echo '<pre>';
+        print_r($model);
+        echo '</pre>';
+}
 
 exit;
 
@@ -46,8 +93,29 @@ function load_model() {
                 unset($model['types'][$key]['fields'][$weight]);
             }
         }
+        // Add parent fields to the children types.
+        $modified_types = $model['types'];
         foreach ($model['types'] as $key => $type) {
-            $model['types'][$key] = load_parent_properties($model['types'], $type);
+            if (!isset($type['parent'])) {
+                $parent_id = $key;
+                unset($modified_types[$key]);
+                foreach ($modified_types as $midified_key => $modified_type) {
+                    if (isset($modified_type['parent']) && $modified_type['parent'] === $parent_id) {
+                        // Add parent fields to the children types in the start of the array.
+                        $parent_fields = [];
+                        foreach ($type['fields'] as $field) {
+                            if (isset($model['types'][$midified_key]['fields'][$field['id']])) {
+                                $model['types'][$midified_key]['fields'][$field['id']] = $field;
+                            }
+                            else {
+                                $parent_fields[$field['id']] = $field;
+                            }
+                        }
+                        $model['types'][$midified_key]['fields'] = array_merge($parent_fields, $model['types'][$midified_key]['fields']);
+                        unset($model['types'][$key]['parent']);
+                    }
+                }
+            }
         }
 
         // Load fields from files if they are strings.
