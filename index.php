@@ -18,17 +18,30 @@ if (isset($_SESSION['model'])) {
 }
 
 $action = isset($_GET['action']) ? $_GET['action'] : 'list';
+echo '<h1>Basic CMS prototype</h1>';
 switch ($action) {
     case 'add':
+    case 'edit':
         // Output the form for adding a new object.
         // there should be type of the object in $_GET['action'].
         if (isset($_GET['type'])) {
             $type = $model['types'][$_GET['type']];
             $fields = $model['fields'];
-            echo '<h2>Add new ' . $type['name'] . '</h2>';
+            $data = [];
+            if ($action === 'edit') {
+                // Load the object data from the file.
+                $contentFolder = $_ENV['CONTENT_FOLDER'] . $_GET['type'] . '/';
+                $contentFile = $contentFolder . $_GET['id'] . '.' . $_ENV['CONTENT_FORMAT'];
+                $data = json_decode(file_get_contents($contentFile), true);
+                echo '<h2>Edit object <em>' . $_GET['id'] . '</em> type of <em>' . $type['name'] . '</em></h2>';
+            }
+            else {
+                echo '<h2>Add a New ' . $type['name'] . '</h2>';
+            }
             echo '<form method="post" action="index.php?action=save">';
             echo '<input type="hidden" name="type" value="' . $type['id'] . '">';
             foreach ($type['fields'] as $field) {
+                $value = isset($data[$field['id']]) ? $data[$field['id']] : '';
                 echo '<div><label for="' . $field['id'] . '"><strong>' . $field['name'] . ':</strong></label><br />';
                 switch($fields[$field['type']]['element']) {
                     case 'select':
@@ -38,17 +51,27 @@ switch ($action) {
                         echo 'TBD: radio';
                         break;
                     case 'checkbox':
-                        echo '<input type="checkbox" name="' . $field['id'] . '" id="' . $field['id'] . '"></div>';
+                        echo '<input type="checkbox" name="' . $field['id'] . '" id="' . $field['id'];
+                        if ($value == 'on') {
+                            echo '" checked></div>';
+                        }
+                        else {
+                            echo '"></div>';
+                        }
                         break;
                     case 'textarea':
-                        echo '<textarea name="' . $field['id'] . '" id="' . $field['id'] . '"></textarea></div>';
+                        echo '<textarea name="' . $field['id'] . '" id="' . $field['id'] . '">' .
+                            $value . '</textarea></div>';
                         break;
                     default:
-                        echo '<input type="text" name="' . $field['id'] . '" id="' . $field['id'] . '"></div>';
+                        echo '<input type="text" name="' . $field['id'] . '" id="' . $field['id'] .
+                            '" value="' . $value . '"></div>';
                 }
             }
+
             echo '<div><input type="submit" value="Save"></div>';
             echo '</form>';
+            echo '<div><a href="index.php">Cancel</a></div>';
         }
         break;
     case 'save':
@@ -79,14 +102,29 @@ switch ($action) {
             echo 'Error: Invalid object type!';
         }
         break;
-    case 'edit':
-        echo json_encode($model['types']);
-        break;
     case 'delete':
-        echo "TBD: delete object.";
+        // Output conformation form for deleting the object.
+        echo '<h2>Delete object <em>' . $_GET['id'] . '</em> type of <em>' . $_GET['type'] . '</em>?</h2>';
+        echo '<form method="post" action="index.php?action=delete_confirm&type=' . $_GET['type'] . '&id=' . $_GET['id'] . '">';
+        echo '<div><input type="submit" value="Delete"></div>';
+        echo '</form>';
+        echo '<div><a href="index.php">Cancel</a></div>';
         break;
+    case 'delete_confirm':
+        // Delete the object from content folder.
+        $contentFolder = $_ENV['CONTENT_FOLDER'] . $_GET['type'] . '/';
+        $contentFile = $contentFolder . $_GET['id'] . '.' . $_ENV['CONTENT_FORMAT'];
+        if (file_exists($contentFile)) {
+            unlink($contentFile);
+            echo '<div><em>Object deleted successfully!</em></div>';
+        } else {
+            echo '<div><em>Error: Object not found!</em></div>';
+        }
+        echo '<div><a href="index.php">Back to the Dashboard</a></div>';
+        break;
+    case 'list':
     default:
-        echo '<h2>Add new object</h2>';
+        echo '<h2>Add a New Object</h2>';
         echo '<ul>';
         foreach ($model['types'] as $type) {
             if (isset($type['status']) && $type['status'] === 'active') {
@@ -107,9 +145,9 @@ switch ($action) {
                             $contentFile = $contentFolder . $file;
                             $data = json_decode(file_get_contents($contentFile), true);
                             echo '<div>';
-                            echo '<span><a href="index.php?action=edit&id=' . $data['id'] . '">Edit</a> | <a href="index.php?action=delete&id=' . $data['id'] . '">Delete</a></span>';
+                            echo '<span><a href="index.php?action=edit&type=' . $type['id'] . '&id=' . $data['id'] . '">Edit</a> | <a href="index.php?action=delete&type=' . $type['id'] . '&id=' . $data['id'] . '">Delete</a></span>';
                             foreach ($type['fields'] as $field) {
-                                if (in_array($field['id'], ['id', 'title', 'slug', 'published'])) {
+                                if (in_array($field['id'], ['id', 'title', 'slug', 'published']) && isset($data[$field['id']])) {
                                     echo '&nbsp;&nbsp;<span><strong>' . $field['name'] . ':</strong> ' . $data[$field['id']] . '</span>';
                                 }
                             }
