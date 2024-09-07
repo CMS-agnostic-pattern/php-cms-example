@@ -134,6 +134,7 @@ switch ($action) {
         echo '</ul>';
         // Output list of available objects by types.
         echo '<h2>List of Available Objects</h2>';
+        $objects = []; // Object list array.
         foreach ($model['types'] as $type) {
             if (isset($type['status']) && $type['status'] === 'active') {
                 echo '<h3>' . $type['name'] . '</h3>';
@@ -144,18 +145,26 @@ switch ($action) {
                         if ($file !== '.' && $file !== '..') {
                             $contentFile = $contentFolder . $file;
                             $data = json_decode(file_get_contents($contentFile), true);
-                            echo '<div>';
-                            echo '<span><a href="index.php?action=edit&type=' . $type['id'] . '&id=' . $data['id'] . '">Edit</a> | <a href="index.php?action=delete&type=' . $type['id'] . '&id=' . $data['id'] . '">Delete</a></span>';
-                            foreach ($type['fields'] as $field) {
-                                if (in_array($field['id'], ['id', 'title', 'slug', 'published']) && isset($data[$field['id']])) {
-                                    echo '&nbsp;&nbsp;<span><strong>' . $field['name'] . ':</strong> ' . $data[$field['id']] . '</span>';
+                            if (isset($data['id']) && $type['id']) {
+                                $objects[$type['id']][$data['id']] = $type['id'] . '/' . $data['id'] . '.' . $_ENV['CONTENT_FORMAT'];
+                                echo '<div>';
+                                echo '<span><a href="index.php?action=edit&type=' . $type['id'] .
+                                    '&id=' . $data['id'] . '">Edit</a> | <a href="index.php?action=delete&type=' .
+                                    $type['id'] . '&id=' . $data['id'] . '">Delete</a></span>';
+                                foreach ($type['fields'] as $field) {
+                                    if (in_array($field['id'], ['id', 'title', 'slug', 'published']) && isset($data[$field['id']])) {
+                                        echo '&nbsp;&nbsp;<span><strong>' . $field['name'] . ':</strong> ' . $data[$field['id']] . '</span>';
+                                    }
                                 }
+                                echo '</div>';
                             }
-                            echo '</div>';
                         }
                     }
                 }
             }
+            // Update the object index file.
+            // TBD: To find the rights place to do that.
+            file_put_contents($_ENV['CONTENT_FOLDER'] . 'index.json', json_encode($objects));
         }
         // echo '<pre>';
         // print_r($model);
