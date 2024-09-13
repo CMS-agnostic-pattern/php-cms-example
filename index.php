@@ -122,6 +122,12 @@ switch ($action) {
         }
         echo '<div><a href="index.php">Back to the Dashboard</a></div>';
         break;
+    case 'model':
+        echo '<div><a href="index.php">Back to the Dashboard</a></div>';
+        echo '<pre>';
+        print_r($model);
+        echo '</pre>';
+        break;
     case 'list':
     default:
         echo '<h2>Add a New Object</h2>';
@@ -162,13 +168,14 @@ switch ($action) {
                     }
                 }
             }
-            // Update the object index file.
-            // TBD: To find the rights place to do that.
-            file_put_contents($_ENV['CONTENT_FOLDER'] . 'index.json', json_encode($objects));
         }
-        // echo '<pre>';
-        // print_r($model);
-        // echo '</pre>';
+        // Current data model.
+        echo '<h2>Current data model</h2>';
+        echo '<a href="index.php?action=model">Compiled version</a>';
+        // Update the object index file.
+        // TBD: To find the rights place to do that.
+        file_put_contents($_ENV['CONTENT_FOLDER'] . 'index.json', json_encode($objects));
+        break;
 }
 
 exit;

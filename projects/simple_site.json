@@ -1,0 +1,12 @@
+{
+    "models": [
+      {
+        "folder": "https://raw.githubusercontent.com/vasilyyaremchuk/model/main/basic.json/",
+        "file": "root.json"
+      }
+    ],
+    "content": {
+        "folder": "content/simple_site/",
+        "format": "json"
+    }
+}
