@@ -4,16 +4,31 @@ use Dotenv\Dotenv;
 
 require_once __DIR__ . '/vendor/autoload.php';
 
-// Load environment variables from .env file.
-$dotenv = Dotenv::createImmutable(__DIR__);
-$dotenv->safeLoad();
+session_start();
+
+if (!isset($_SESSION['project'])) {
+    // Load environment variables from .env file.
+    $dotenv = Dotenv::createImmutable(__DIR__);
+    $dotenv->safeLoad();
+    $project['models'][0] = [
+        'folder' => $_ENV['MODEL_ROOT_FOLDER'],
+        'path' => $_ENV['MODEL_ROOT_FILE'],
+    ];
+    $project['content'] = [
+        'folder' => $_ENV['CONTENT_FOLDER'],
+        'format' => $_ENV['CONTENT_FORMAT'],
+    ];
+    $_SESSION['project'] = $project;
+}
+else {
+    $project = $_SESSION['project'];
+}
 
 // Check if model exists in session
-session_start();
 if (isset($_SESSION['model'])) {
     $model = $_SESSION['model'];
 } else {
-    $model = load_model();
+    $model = load_model($project);
     $_SESSION['model'] = $model;
 }
 
@@ -30,8 +45,8 @@ switch ($action) {
             $data = [];
             if ($action === 'edit') {
                 // Load the object data from the file.
-                $contentFolder = $_ENV['CONTENT_FOLDER'] . $_GET['type'] . '/';
-                $contentFile = $contentFolder . $_GET['id'] . '.' . $_ENV['CONTENT_FORMAT'];
+                $contentFolder = $project['content']['folder'] . $_GET['type'] . '/';
+                $contentFile = $contentFolder . $_GET['id'] . '.' . $project['content']['format'];
                 $data = json_decode(file_get_contents($contentFile), true);
                 echo '<h2>Edit object <em>' . $_GET['id'] . '</em> type of <em>' . $type['name'] . '</em></h2>';
             }
@@ -84,12 +99,12 @@ switch ($action) {
                     $data[$field['id']] = $_POST[$field['id']];
                 }
             }
-            $contentFolder = $_ENV['CONTENT_FOLDER'] . $_POST['type'] . '/';
+            $contentFolder = $project['content']['folder'] . $_POST['type'] . '/';
             if (!is_dir($contentFolder)) {
                 mkdir($contentFolder, 0777, true);
             }
-            $contentFile = $contentFolder . $_POST['id'] . '.' . $_ENV['CONTENT_FORMAT'];
-            switch ($_ENV['CONTENT_FORMAT']) {
+            $contentFile = $contentFolder . $_POST['id'] . '.' . $project['content']['format'];
+            switch ($project['content']['format']) {
                 // TBD: add more formats.
                 case 'json':
                 default:
@@ -112,8 +127,8 @@ switch ($action) {
         break;
     case 'delete_confirm':
         // Delete the object from content folder.
-        $contentFolder = $_ENV['CONTENT_FOLDER'] . $_GET['type'] . '/';
-        $contentFile = $contentFolder . $_GET['id'] . '.' . $_ENV['CONTENT_FORMAT'];
+        $contentFolder = $project['content']['folder'] . $_GET['type'] . '/';
+        $contentFile = $contentFolder . $_GET['id'] . '.' . $project['content']['format'];
         if (file_exists($contentFile)) {
             unlink($contentFile);
             echo '<div><em>Object deleted successfully!</em></div>';
@@ -144,7 +159,7 @@ switch ($action) {
         foreach ($model['types'] as $type) {
             if (isset($type['status']) && $type['status'] === 'active') {
                 echo '<h3>' . $type['name'] . '</h3>';
-                $contentFolder = $_ENV['CONTENT_FOLDER'] . $type['id'] . '/';
+                $contentFolder = $project['content']['folder'] . $type['id'] . '/';
                 if (is_dir($contentFolder)) {
                     $files = scandir($contentFolder);
                     foreach ($files as $file) {
@@ -152,7 +167,7 @@ switch ($action) {
                             $contentFile = $contentFolder . $file;
                             $data = json_decode(file_get_contents($contentFile), true);
                             if (isset($data['id']) && $type['id']) {
-                                $objects[$type['id']][$data['id']] = $type['id'] . '/' . $data['id'] . '.' . $_ENV['CONTENT_FORMAT'];
+                                $objects[$type['id']][$data['id']] = $type['id'] . '/' . $data['id'] . '.' . $project['content']['format'];
                                 echo '<div>';
                                 echo '<span><a href="index.php?action=edit&type=' . $type['id'] .
                                     '&id=' . $data['id'] . '">Edit</a> | <a href="index.php?action=delete&type=' .
@@ -169,23 +184,84 @@ switch ($action) {
                 }
             }
         }
+
         // Current data model.
         echo '<h2>Current data model</h2>';
         echo '<a href="index.php?action=model">Compiled version</a>';
         // Update the object index file.
         // TBD: To find the rights place to do that.
-        file_put_contents($_ENV['CONTENT_FOLDER'] . 'index.json', json_encode($objects));
+        // check if folder exists, if not create it.
+        if (!is_dir($project['content']['folder'])) {
+            mkdir($project['content']['folder'], 0777, true);
+        }
+        file_put_contents($project['content']['folder'] . 'index.json', json_encode($objects));
+
+        // Available projects.
+        echo '<h2>Available projects</h2>';
+        $projectsFolder = 'projects';
+        if (is_dir($projectsFolder)) {
+            $files = scandir($projectsFolder);
+            foreach ($files as $file) {
+                if ($file !== '.' && $file !== '..') {
+                    echo '<div>';
+                    echo '<span><a href="' . $projectsFolder . '/' . $file . '">View</a> | ' .
+                    '<a href="index.php?action=load&project=' . $file . '">Load</a></span>&nbsp;&nbsp;' .
+                    $file . '</span>';
+                    echo '</div>';
+                }
+            }
+        }
         break;
+        case 'load':
+            // Load the project.
+            $projectsFolder = 'projects';
+            $project = json_decode(file_get_contents($projectsFolder . '/' . $_GET['project']), true);
+            $_SESSION['model'] = load_models($project);
+            $_SESSION['project'] = $project;
+            // Redirect to the dashboard.
+            header('Location: index.php');
+            break;
 }
 
 exit;
 
-// Load model function.
-function load_model() {
-    if (isset($_ENV['MODEL_ROOT_FOLDER']) &&
-        isset($_ENV['MODEL_ROOT_FILE'])) {
-        $root_path = $_ENV['MODEL_ROOT_FOLDER'];
-        $root_file = $_ENV['MODEL_ROOT_FILE'];
+
+// Load models function.
+function load_models($project) {
+    $model = [];
+    foreach ($project['models'] as $m) {
+        $model_part = load_model($m);
+        // Merge the model parts recursively.
+        $model = custom_array_merge_recursive($model, $model_part);
+
+    }
+    return $model;
+}
+
+// Custom function to merge arrays recursively with specific behavior for numeric keys.
+function custom_array_merge_recursive($array1, $array2) {
+    foreach ($array2 as $key => $value) {
+        if (is_array($value) && isset($array1[$key]) && is_array($array1[$key])) {
+            if (array_keys($value) === range(0, count($value) - 1)) {
+                // If the array has numeric keys, replace it with the last element.
+                $array1[$key] = end($value);
+            } else {
+                // Otherwise, merge recursively.
+                $array1[$key] = custom_array_merge_recursive($array1[$key], $value);
+            }
+        } else {
+            $array1[$key] = $value;
+        }
+    }
+    return $array1;
+}
+
+// Load one model.
+function load_model($m) {
+    if (isset($m['folder']) &&
+        isset($m['file'])) {
+        $root_path = $m['folder'];
+        $root_file = $m['file'];
         $model = json_decode(file_get_contents($root_path . $root_file), true);
 
         // Load types from files if they are strings.
@@ -251,42 +327,8 @@ function load_model() {
                 unset($model['fields'][$key]);
             }
         }
-        /* TBD: need to load parent properties for fields
-        foreach ($model['fields'] as $key => $field) {
-            $model['fields'][$key] = load_parent_properties($model['fields'], $field);
-        }
-        */
 
         return $model;
     }
-    return FALSE;
-}
-
-// Load parent properties.
-function load_parent_properties(array $initial_data_set, array $data_piece) {
-    $result = [];
-    if(isset($data_piece['parent'])) {
-        $parent = $initial_data_set[$data_piece['id']];
-        if (isset($parent['parent'])) {
-            $completed_parent = load_parent_properties($initial_data_set, $parent);
-        }
-        else {
-            $completed_parent = $parent;
-        }
-        foreach ($data_piece as $key => $value) {
-            if ($key !== 'parent') {
-                $completed_parent[$key] = $value;
-            }
-            if ($key === 'fields') {
-                foreach ($value as $field_key => $field) {
-                    $completed_parent['fields'][$field_key] = $field;
-                }
-            }
-        }
-        $result = $completed_parent;
-    }
-    else {
-        $result = $data_piece;
-    }
-    return $result;
+    return [];
 }
