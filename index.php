@@ -1,6 +1,7 @@
 <?php
 
 use Dotenv\Dotenv;
+use Ramsey\Uuid\Uuid;
 
 require_once __DIR__ . '/vendor/autoload.php';
 
@@ -70,9 +71,13 @@ switch ($action) {
                             '" value="' . $value . '"></div>';
                         break;
                     case 'hidden':
+                        if ($field['type'] == 'uuid' && empty($value)) {
+                            $uuid = Uuid::uuid4();
+                            $value = $uuid->toString();
+                        }
                         echo '<input type="hidden" name="' . $field['id'] . '" id="' . $field['id'] .
                             '" value="' . $value . '">';
-                        echo '<input disabled type="textfield" name="palceholder-' . $field['id'] . '" id="placeholder-' . $field['id'] .
+                        echo '<input disabled size=38 type="textfield" name="palceholder-' . $field['id'] . '" id="placeholder-' . $field['id'] .
                             '" value="' . $value . '"></div>';
                         break;
                     case 'checkbox':
@@ -347,10 +352,11 @@ function add_parent_fields($model) {
                     // Add parent fields to the children types in the start of the array.
                     foreach ($type['fields'] as $field) {
                         if (isset($model['types'][$modified_key]['fields'][$field['id']])) {
-                            $modified_types[$modified_key]['fields'][$field['id']] = $field;
+                            $modified_types[$modified_key]['fields'][$field['id']]
+                            = array_merge($field, $model['types'][$modified_key]['fields'][$field['id']]);
                         }
                         else {
-                            $modified_types[$modified_key][$field['id']] = $field;
+                            $modified_types[$modified_key]['fields'][$field['id']] = $field;
                         }
                     }
                     unset($modified_types[$modified_key]['parent']);
