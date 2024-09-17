@@ -65,6 +65,16 @@ switch ($action) {
                     case 'radio':
                         echo 'TBD: radio';
                         break;
+                    case 'date':
+                        echo '<input type="date" name="' . $field['id'] . '" id="' . $field['id'] .
+                            '" value="' . $value . '"></div>';
+                        break;
+                    case 'hidden':
+                        echo '<input type="hidden" name="' . $field['id'] . '" id="' . $field['id'] .
+                            '" value="' . $value . '">';
+                        echo '<input disabled type="textfield" name="palceholder-' . $field['id'] . '" id="placeholder-' . $field['id'] .
+                            '" value="' . $value . '"></div>';
+                        break;
                     case 'checkbox':
                         echo '<input type="checkbox" name="' . $field['id'] . '" id="' . $field['id'];
                         if ($value == 'on') {
@@ -287,29 +297,10 @@ function load_model($m) {
                 unset($model['types'][$key]['fields'][$weight]);
             }
         }
+
         // Add parent fields to the children types.
-        $modified_types = $model['types'];
-        foreach ($model['types'] as $key => $type) {
-            if (!isset($type['parent'])) {
-                $parent_id = $key;
-                unset($modified_types[$key]);
-                foreach ($modified_types as $midified_key => $modified_type) {
-                    if (isset($modified_type['parent']) && $modified_type['parent'] === $parent_id) {
-                        // Add parent fields to the children types in the start of the array.
-                        $parent_fields = [];
-                        foreach ($type['fields'] as $field) {
-                            if (isset($model['types'][$midified_key]['fields'][$field['id']])) {
-                                $model['types'][$midified_key]['fields'][$field['id']] = $field;
-                            }
-                            else {
-                                $parent_fields[$field['id']] = $field;
-                            }
-                        }
-                        $model['types'][$midified_key]['fields'] = array_merge($parent_fields, $model['types'][$midified_key]['fields']);
-                        unset($model['types'][$key]['parent']);
-                    }
-                }
-            }
+        while (check_parents($model['types'])) {
+            $model = add_parent_fields($model);
         }
 
         // Load fields from files if they are strings.
@@ -331,4 +322,42 @@ function load_model($m) {
         return $model;
     }
     return [];
+}
+
+// Check if types have parents.
+function check_parents($types) {
+    foreach ($types as $type) {
+        if (isset($type['parent'])) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Add fileds from parents.
+function add_parent_fields($model) {
+    $modified_types = $model['types'];
+    foreach ($model['types'] as $key => $type) {
+        if (!isset($type['parent'])) {
+            foreach ($modified_types as $modified_key => $modified_type) {
+                if (isset($modified_type['parent']) &&
+                    // Defence from the stupid case when parent is the same as the child.
+                    $modified_type['parent'] != $modified_key &&
+                    $modified_type['parent'] === $key) {
+                    // Add parent fields to the children types in the start of the array.
+                    foreach ($type['fields'] as $field) {
+                        if (isset($model['types'][$modified_key]['fields'][$field['id']])) {
+                            $modified_types[$modified_key]['fields'][$field['id']] = $field;
+                        }
+                        else {
+                            $modified_types[$modified_key][$field['id']] = $field;
+                        }
+                    }
+                    unset($modified_types[$modified_key]['parent']);
+                }
+            }
+        }
+    }
+    $model['types'] = $modified_types;
+    return $model;
 }
