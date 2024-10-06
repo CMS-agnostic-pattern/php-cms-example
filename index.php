@@ -160,57 +160,58 @@ switch ($action) {
         break;
     case 'list':
     default:
-        echo '<h2>Add a New Object</h2>';
-        echo '<ul>';
-        foreach ($model['types'] as $type) {
-            if (isset($type['status']) && $type['status'] === 'active') {
-                echo '<li><a href="index.php?action=add&type=' . $type['id'] . '">' . $type['name'] . '</a></li>';
+        if (!empty($model)) {
+            echo '<h2>Add a New Object</h2>';
+            echo '<ul>';
+            foreach ($model['types'] as $type) {
+                if (isset($type['status']) && $type['status'] === 'active') {
+                    echo '<li><a href="index.php?action=add&type=' . $type['id'] . '">' . $type['name'] . '</a></li>';
+                }
             }
-        }
-        echo '</ul>';
-        // Output list of available objects by types.
-        echo '<h2>List of Available Objects</h2>';
-        $objects = []; // Object list array.
-        foreach ($model['types'] as $type) {
-            if (isset($type['status']) && $type['status'] === 'active') {
-                echo '<h3>' . $type['name'] . '</h3>';
-                $contentFolder = $project['content']['folder'] . $type['id'] . '/';
-                if (is_dir($contentFolder)) {
-                    $files = scandir($contentFolder);
-                    foreach ($files as $file) {
-                        if ($file !== '.' && $file !== '..') {
-                            $contentFile = $contentFolder . $file;
-                            $data = json_decode(file_get_contents($contentFile), true);
-                            if (isset($data['id']) && $type['id']) {
-                                $objects[$type['id']][$data['id']] = $type['id'] . '/' . $data['id'] . '.' . $project['content']['format'];
-                                echo '<div>';
-                                echo '<span><a href="index.php?action=edit&type=' . $type['id'] .
-                                    '&id=' . $data['id'] . '">Edit</a> | <a href="index.php?action=delete&type=' .
-                                    $type['id'] . '&id=' . $data['id'] . '">Delete</a></span>';
-                                foreach ($type['fields'] as $field) {
-                                    if (in_array($field['id'], ['id', 'title', 'slug', 'published']) && isset($data[$field['id']])) {
-                                        echo '&nbsp;&nbsp;<span><strong>' . $field['name'] . ':</strong> ' . $data[$field['id']] . '</span>';
+            echo '</ul>';
+            // Output list of available objects by types.
+            echo '<h2>List of Available Objects</h2>';
+            $objects = []; // Object list array.
+            foreach ($model['types'] as $type) {
+                if (isset($type['status']) && $type['status'] === 'active') {
+                    echo '<h3>' . $type['name'] . '</h3>';
+                    $contentFolder = $project['content']['folder'] . $type['id'] . '/';
+                    if (is_dir($contentFolder)) {
+                        $files = scandir($contentFolder);
+                        foreach ($files as $file) {
+                            if ($file !== '.' && $file !== '..') {
+                                $contentFile = $contentFolder . $file;
+                                $data = json_decode(file_get_contents($contentFile), true);
+                                if (isset($data['id']) && $type['id']) {
+                                    $objects[$type['id']][$data['id']] = $type['id'] . '/' . $data['id'] . '.' . $project['content']['format'];
+                                    echo '<div>';
+                                    echo '<span><a href="index.php?action=edit&type=' . $type['id'] .
+                                        '&id=' . $data['id'] . '">Edit</a> | <a href="index.php?action=delete&type=' .
+                                        $type['id'] . '&id=' . $data['id'] . '">Delete</a></span>';
+                                    foreach ($type['fields'] as $field) {
+                                        if (in_array($field['id'], ['id', 'title', 'slug', 'published']) && isset($data[$field['id']])) {
+                                            echo '&nbsp;&nbsp;<span><strong>' . $field['name'] . ':</strong> ' . $data[$field['id']] . '</span>';
+                                        }
                                     }
+                                    echo '</div>';
                                 }
-                                echo '</div>';
                             }
                         }
                     }
                 }
             }
-        }
 
-        // Current data model.
-        echo '<h2>Current data model</h2>';
-        echo '<a href="index.php?action=model">Compiled version</a>';
-        // Update the object index file.
-        // TBD: To find the rights place to do that.
-        // check if folder exists, if not create it.
-        if (!is_dir($project['content']['folder'])) {
-            mkdir($project['content']['folder'], 0777, true);
+            // Current data model.
+            echo '<h2>Current data model</h2>';
+            echo '<a href="index.php?action=model">Compiled version</a>';
+            // Update the object index file.
+            // TBD: To find the rights place to do that.
+            // check if folder exists, if not create it.
+            if (!is_dir($project['content']['folder'])) {
+                mkdir($project['content']['folder'], 0777, true);
+            }
+            file_put_contents($project['content']['folder'] . 'index.json', json_encode($objects));
         }
-        file_put_contents($project['content']['folder'] . 'index.json', json_encode($objects));
-
         // Available projects.
         echo '<h2>Available projects</h2>';
         $projectsFolder = 'projects';
