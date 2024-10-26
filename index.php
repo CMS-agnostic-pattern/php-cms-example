@@ -346,21 +346,45 @@ function add_parent_fields($model) {
     foreach ($model['types'] as $key => $type) {
         if (!isset($type['parent'])) {
             foreach ($modified_types as $modified_key => $modified_type) {
-                if (isset($modified_type['parent']) &&
-                    // Defence from the stupid case when parent is the same as the child.
-                    $modified_type['parent'] != $modified_key &&
-                    $modified_type['parent'] === $key) {
-                    // Add parent fields to the children types in the start of the array.
-                    foreach ($type['fields'] as $field) {
-                        if (isset($model['types'][$modified_key]['fields'][$field['id']])) {
-                            $modified_types[$modified_key]['fields'][$field['id']]
-                            = array_merge($field, $model['types'][$modified_key]['fields'][$field['id']]);
+                if (isset($modified_type['parent'])) {
+                    if (is_string($modified_type['parent']) &&
+                        // Defence from the stupid case when parent is the same as the child.
+                        $modified_type['parent'] != $modified_key &&
+                        $modified_type['parent'] === $key) {
+                        // Add parent fields to the children types in the start of the array.
+                        foreach ($type['fields'] as $field) {
+                            if (isset($model['types'][$modified_key]['fields'][$field['id']])) {
+                                $modified_types[$modified_key]['fields'][$field['id']]
+                                = array_merge($field, $model['types'][$modified_key]['fields'][$field['id']]);
+                            }
+                            else {
+                                $modified_types[$modified_key]['fields'][$field['id']] = $field;
+                            }
                         }
-                        else {
-                            $modified_types[$modified_key]['fields'][$field['id']] = $field;
+                        unset($modified_types[$modified_key]['parent']);
+                    }
+                    elseif(is_array($modified_type['parent']) && in_array($key, $modified_type['parent'])) {
+                        // Add parent fields to the children types in the start of the array.
+                        foreach ($type['fields'] as $field) {
+                            if (isset($model['types'][$modified_key]['fields'][$field['id']])) {
+                                $modified_types[$modified_key]['fields'][$field['id']]
+                                = array_merge($field, $model['types'][$modified_key]['fields'][$field['id']]);
+                            }
+                            else {
+                                $modified_types[$modified_key]['fields'][$field['id']] = $field;
+                            }
+                        }
+                        foreach ($modified_types[$modified_key]['parent'] as $to_delete_key => $to_delete_value) {
+                            if ($to_delete_value === $key) {
+                                if (count($modified_types[$modified_key]['parent']) == 1) {
+                                    unset($modified_types[$modified_key]['parent']);
+                                }
+                                else {
+                                    unset($modified_types[$modified_key]['parent'][$to_delete_key]);
+                                }
+                            }
                         }
                     }
-                    unset($modified_types[$modified_key]['parent']);
                 }
             }
         }

@@ -1,0 +1,18 @@
+{
+  "id": "blog_page",
+  "name": "Post",
+  "parent": [
+    "seo_data",
+    "basic_page"
+  ],
+  "status": "active",
+  "fields":
+  [
+    {
+      "id": "date",
+      "name": "Date",
+      "type": "date",
+      "required": true
+    }
+  ]
+}

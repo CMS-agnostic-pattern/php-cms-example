@@ -1,0 +1,19 @@
+{
+  "id": "basic_tree_item",
+  "name": "Tree Item",
+  "fields":
+  [
+    {
+      "id": "id",
+      "name": "ID",
+      "type": "id",
+      "unique": true,
+      "required": true
+    },
+    {
+      "id": "parent",
+      "name": "Parent",
+      "type": "id"
+    }
+  ]
+}

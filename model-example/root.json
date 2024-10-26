@@ -1,0 +1,52 @@
+{
+  "fields": [
+    {
+      "id": "uuid",
+      "element": "hidden",
+      "description": "A Universally Unique Identifier (UUID) is a 128-bit label used for information in computer systems."
+    },
+    {
+      "id": "string",
+      "element": "textfield",
+      "description": "A simple text field. Up to 255 characters."
+    },
+    {
+      "id": "slug",
+      "element": "textfield",
+      "description": "Relative path."
+    },
+    {
+      "id": "text",
+      "element": "textarea",
+      "description": "A simple text area. Up to 65,535 characters."
+    },
+    {
+      "id": "rich_text",
+      "element": "textarea",
+      "description": "A rich text area. Can include limited HTML markup."
+    },
+    {
+      "id": "html",
+      "element": "textarea",
+      "description": "HTML markup."
+    },
+    {
+      "id": "date",
+      "element": "date",
+      "description": "A date control."
+    },
+    {
+      "id": "boolean",
+      "element": "checkbox",
+      "description": "A true/false value."
+    }
+  ],
+  "types": [
+    "types/basic_data.json",
+    "types/seo_data.json",
+    "types/basic_page.json",
+    "types/blog_page.json",
+    "types/basic_tree_item.json",
+    "types/basic_menu_item.json"
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "id": "seo_data",
+  "name": "SEO",
+  "fields":
+  [
+    {
+      "id": "meta_title",
+      "name": "Meta Title",
+      "type": "string"
+    },
+    {
+      "id": "meta_description",
+      "name": "Meta Description",
+      "type": "string"
+    },
+    {
+      "id": "meta_keywords",
+      "name": "Meta Keywords",
+      "type": "string"
+    },
+    {
+      "id": "meta_robots",
+      "name": "Meta Robots",
+      "type": "string"
+    },
+    {
+      "id": "canonical_url",
+      "name": "Canonical URL",
+      "type": "string"
+    }
+  ]
+}

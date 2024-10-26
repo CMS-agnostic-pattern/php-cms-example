@@ -1,0 +1,26 @@
+{
+  "id": "basic_menu_item",
+  "name": "Menu Item",
+  "parent": "basic_tree_item",
+  "status": "active",
+  "fields":
+  [
+    {
+      "id": "title",
+      "name": "Title",
+      "type": "string",
+      "required": true
+    },
+    {
+      "id": "slug",
+      "name": "Slug",
+      "type": "slug",
+      "required": true
+    },
+    {
+      "id": "published",
+      "name": "Published",
+      "type": "boolean"
+    }
+  ]
+}

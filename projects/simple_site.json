@@ -1,7 +1,7 @@
 {
     "models": [
       {
-        "folder": "https://raw.githubusercontent.com/vasilyyaremchuk/model/main/basic.json/",
+        "folder": "https://raw.githubusercontent.com/CMS-agnostic-pattern/model-examples/refs/heads/main/basic.json/",
         "file": "root.json"
       }
     ],

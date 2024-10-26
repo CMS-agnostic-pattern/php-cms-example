@@ -1,0 +1,34 @@
+{
+  "id": "basic_page",
+  "name": "Page",
+  "parent": [
+    "seo_data",
+    "basic_data"
+  ],
+  "status": "active",
+  "fields":
+  [
+    {
+      "id": "title",
+      "name": "Title",
+      "type": "string",
+      "required": true
+    },
+    {
+      "id": "content",
+      "name": "Content",
+      "type": "rich_text"
+    },
+    {
+      "id": "slug",
+      "name": "Slug",
+      "type": "slug",
+      "required": true
+    },
+    {
+      "id": "published",
+      "name": "Published",
+      "type": "boolean"
+    }
+  ]
+}

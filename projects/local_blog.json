@@ -1,0 +1,12 @@
+{
+    "models": [
+      {
+        "folder": "model-example/",
+        "file": "root.json"
+      }
+    ],
+    "content": {
+        "folder": "content/local_blog/",
+        "format": "json"
+    }
+}
